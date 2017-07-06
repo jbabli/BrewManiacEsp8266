@@ -48,10 +48,10 @@
 //- See more at: http://www.esp8266.com/viewtopic.php?f=23&t=6394#sthash.5cMDbhuW.dpuf
 #define SerialDebug false
 #define DebugPort Serial
-#define SpargeHeaterSupport true
+#define SpargeHeaterSupport false
 #define MANUAL_PUMP_MASH true
 // DELAY start
-#define NoDelayStart false
+#define NoDelayStart true
 #define SupportAutoModeRecovery true
 #define SupportManualModeCountDown true
 #define NoWhirlpool false
@@ -69,8 +69,12 @@
 #define MinimumTemperatureReadGap 500
 
 //debug setting
-#define FakeHeating false
-#define DEVELOP_SETTING_VALUE false
+// Changes - 6/22/2017 - For debugging set both of the following to true.
+//#define FakeHeating false
+//#define DEVELOP_SETTING_VALUE false
+#define FakeHeating true
+#define DEVELOP_SETTING_VALUE true
+// ^
 
 // *************************
 //*  Button timeing setting

@@ -88,6 +88,10 @@ boolean gIsEnterPwm;
 boolean gIsTemperatureReached;
 boolean gIsPaused;
 
+boolean bIsBoilStarted;
+boolean bBoilStageUsePwm;
+boolean bManualBoilStage;
+
 #if MANUAL_PUMP_MASH == true
 boolean gManualPump;
 #endif
@@ -3302,8 +3306,18 @@ void manualModeEventHandler(byte event)
 					if(gIsHeatOn) heatOff();
 					if(gIsPumpOn) pumpOff();
 				}
-				else
+        else if ((bManualBoilStage == true) && (bIsBoilStarted == false))
+#else
+        if ((bManualBoilStage == true) && (bIsBoilStarted == false))
 #endif
+        {
+          bIsBoilStarted = true;
+          uiClearStartBoilLabel();
+          gBoilHeatOutput = readSetting(PS_BoilHeat);
+          uiShowPwmValue(gBoilHeatOutput);
+          uiButtonLabel(ButtonLabel(Up_Down_Heat_Pmp));
+        }
+        else
 				{
 					//turn heating on/off
 					if(gIsHeatOn) heatOff();
@@ -3400,7 +3414,20 @@ void manualModeEventHandler(byte event)
 			//
 			if (! gIsTemperatureReached)
 			{
-				if(gCurrentTemperature >= gSettingTemperature)
+        // If temperature is greater than 80C (176F), then it is assumed that this is the boil stage.
+        // Use PWM mode, set the intial value to 100%, and show "Start Boil?" with a "Yes" option on the display.
+        if ((bManualBoilStage == false) && (gCurrentTemperature >= 80))
+        {
+          bManualBoilStage = true;
+          uiShowPwmLabel();
+          gBoilHeatOutput = 100;    // Set the PWM to 100% to starting heating towards boil temperature.
+          uiShowPwmValue(gBoilHeatOutput);
+          uiShowStartBoilLabel();
+          uiButtonLabel(ButtonLabel(Up_Down_Start_Pmp));
+          bBoilStageUsePwm = true;
+          gIsEnterPwm = true;
+        }
+				else if(gCurrentTemperature >= gSettingTemperature)
 				{	
 					// beep & start counting time
 					
@@ -3425,8 +3452,6 @@ void manualModeEventHandler(byte event)
 				}
 			}
 			// Temperate Reached state				
-			
-			togglePwmInput();
 
 		} // end of temperature handling
 		#if SupportManualModeCountDown == true
@@ -3979,11 +4004,22 @@ void autoModeEnterBoiling(void)
 	_state = AS_Boiling;
 	_isBoilTempReached=false;
 	_isBoilTimerPaused=false;
-	gBoilStageTemperature=readSetting(PS_BoilTemp);
+
+// Change Boil Stage - 6/29/2017
+  bIsBoilStarted = false;
+  bBoilStageUsePwm = true;
+// ^
+
+  gBoilStageTemperature=readSetting(PS_BoilTemp);
 	//gSettingTemperature =110;//
-	gSettingTemperature = gBoilStageTemperature;
-	
-	uiDisplaySettingTemperature(gSettingTemperature);
+
+// Change Boil Stage - 6/29/2017
+//  gSettingTemperature = gBoilStageTemperature;
+  
+//  uiDisplaySettingTemperature(gSettingTemperature);
+  uiClearSettingTemperature();
+// ^
+
 	// display time
 	byte boilTime=readSetting(PS_BoilTime);
 
@@ -3993,8 +4029,22 @@ void autoModeEnterBoiling(void)
 	uiRunningTimeShowInitial(boilTime * 60);
 	
 	uiAutoModeStage(BoilingStage);
-	uiButtonLabel(ButtonLabel(Up_Down_x_Pmp));
-	
+
+// Change Boil Stage - 6/29/2017
+// On row 2 don't show the temperature setting, but instead show "Start Boil?" and on row 4 show a "Yes" option which 
+// can be used to start the boil.
+// Until the boil is reached the PWM can likely also be used instead of PID.  It could default to 100% but 
+// still allow the user to change it, and then when the "Boil Started?" is selected it could change to the 
+// PWM boil setting, which can still be changed by the user.
+  uiShowPwmLabel();
+  gBoilHeatOutput = 100;    // Set the PWM to 100% to starting heating towards boil temperature.
+  uiShowPwmValue(gBoilHeatOutput);
+  uiShowStartBoilLabel();
+
+//	uiButtonLabel(ButtonLabel(Up_Down_x_Pmp));
+  uiButtonLabel(ButtonLabel(Up_Down_Start_Pmp));
+// ^
+
 	if(readSetting(PS_PumpOnBoil)) pumpOn();
 	else pumpOff();
 
@@ -4007,7 +4057,11 @@ void autoModeEnterBoiling(void)
 	else
 		setAdjustTemperature(110.0,80.0);
 			
-	gIsEnterPwm =false;
+// Change Boil Stage - 6/29/2017
+//	gIsEnterPwm =false;
+  gIsEnterPwm =true;
+// ^
+
 	heatOn(false); // NO need of PID, just full power until boiling
 	#if WirelessSupported == true
 	wiReportCurrentStage(StageBoil);	
@@ -4399,6 +4453,14 @@ void autoModeResumeProcess(void)
 		{
 			byte boilTime=readSetting(PS_BoilTime);
 			byte time = boilTime - elapsed;
+
+// Change Boil Stage - 6/29/2017
+// The following were both added to the non-ESP8266 BrewManiac code, but I am not sure if they are needed so am initially 
+// listing them here but commenting them out.  If it is determined they are needed they can be uncommented out, and if not
+// needed all of this can be removed altogether.
+//      bIsBoilStarted = true;
+//      bBoilStageUsePwm = true;
+// ^
 
 				// findout whihc hop is current 
 
@@ -5122,6 +5184,12 @@ void autoModeEventHandler(byte event)
 					{
 						autoModeBoilingPauseHandler();
 					}
+// Change Boil Stage - 6/29/2017
+          else
+          {
+            bIsBoilStarted = true;
+          }
+// ^
 				}
 				else
 				{
@@ -5152,6 +5220,10 @@ void autoModeEventHandler(byte event)
 					heatOff(); // heat OFF
 					pumpOff();
 					
+// Change Boil Stage - 6/29/2017
+          bBoilStageUsePwm = false;          
+// ^
+
 					brewLogger.event(RemoteEventBoilFinished);
 					
 					#if WirelessSupported == true
@@ -5180,15 +5252,27 @@ void autoModeEventHandler(byte event)
 		}
 		else // if(event ==TemperatureMask)
 		{
-			togglePwmInput();
+// Change Boil Stage - 6/29/2017
+//			togglePwmInput();
 
-			if(gCurrentTemperature >= gBoilStageTemperature)
-			{
+//			if(gCurrentTemperature >= gBoilStageTemperature)
+//			{
+// ^
 				if(_isBoilTempReached == false)
 				{
+// Change Boil Stage - 6/29/2017
+          if (bIsBoilStarted == true)
+          {
+// ^
 					brewLogger.event(RemoteEventTemperatureReached);
 					_isBoilTempReached=true;
 					
+// Change Boil Stage - 6/29/2017
+            uiClearStartBoilLabel();
+            gBoilHeatOutput = readSetting(PS_BoilHeat);
+            uiShowPwmValue(gBoilHeatOutput);
+// ^
+
 					//buzz temperature reach first
 					// because later "add hop" buzz may interrupt
 					// it
@@ -5204,8 +5288,13 @@ void autoModeEventHandler(byte event)
 					#endif
 
 					uiButtonLabel(ButtonLabel(Up_Down_Pause_Pmp));
+// Change Boil Stage - 6/29/2017
+          }
+// ^
 				}
-			}
+// Change Boil Stage - 6/29/2017
+//      }
+// ^
 		}
 	} //AS_Boiling
 	else if(AutoStateIs(AS_Cooling))

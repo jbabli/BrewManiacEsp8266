@@ -174,6 +174,8 @@ DefineButtonLabel( Stop_No_Yes,       " Stop?     No  Yes",33);
 DefineButtonLabel( AccessPoint_Yes,   " Run AP Mode?  Yes",34);
 
 DefineButtonLabel( Extend_Skip_Back,   "Extend - Skip Back",35);
+
+DefineButtonLabel( Up_Down_Start_Pmp,  "UP* *DWN Start Pmp", 36);
 // end of menu
 
 StringConst( SensorResolution ,"Sensor Res.");
@@ -306,6 +308,9 @@ StringConst(Sensor_Manual, "Manual Primary");
 StringConst(AuxSensor_Manual,   "Manual Aux");
 
 #endif // MaximumNumberOfSensors > 1
+
+StringConst( StartBoil, "Start Boil?");
+
 #endif
 
 

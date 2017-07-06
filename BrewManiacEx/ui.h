@@ -742,6 +742,34 @@ void uiDisplaySettingTemperature(float settemp)
     uiLcdDrawSymbol(18,1,LcdCharSetpoint);
 }
 
+void uiClearSettingTemperature(void)
+{
+  lcd.setCursor(12, 1);
+    
+  for (int i = 0; i < 8; i++)
+  {
+    lcd.write(' ');
+  }
+}  //end uiClearSettingTemperature
+
+
+void uiShowStartBoilLabel(void)
+{
+  uiLcdPrint_P(9, 1, STR(StartBoil));
+}  //end uiShowStartBoilLabel
+
+
+void uiClearStartBoilLabel(void)
+{
+  lcd.setCursor(9, 1);
+    
+  for (int i = 0; i < 11; i++)
+  {
+    lcd.write(' ');
+  }
+}  //end uiClearStartBoilLabel
+
+
 void uiClearPwmDisplay(void)
 {
 #if	MaximumNumberOfSensors > 1
@@ -780,9 +808,20 @@ void uiShowPwmValue(byte pwm)
 	buffer[3]='\0';
 	uiLcdPrint(8,2,buffer);
 #else
-	buffer[0]=(pwm==100)? '1':' ';
-	buffer[1]=(pwm/10)? ('0' +(pwm/10)):' ';
-	buffer[2]=	'0' + (pwm%10);
+//  buffer[0]=(pwm==100) ? '1' : ' ';
+  if (pwm == 100)
+  {
+    buffer[0] = '1';
+    buffer[1] = '0';
+    buffer[2] = '0';
+  }
+  else
+  {
+    buffer[0] = ' ';
+    buffer[1]=((pwm/10) ? ('0' +(pwm/10)) : ' ');
+    buffer[2]=  '0' + (pwm%10);
+  }
+
 	buffer[3]='\0';
 
 	uiLcdPrint(5,2,buffer);

@@ -51,8 +51,8 @@
 #define PS_SkipIodineTest     25    //   Skip Iodine Test
 #define PS_IodineTime     26   //    Iodine Time
 #define PS_Whirlpool     27     //  Whirlpool
-//     28 -  31 foot print 
-
+#define PS_DisableBeep      28  //  Disable beeper
+//     29 -  31 foot print 
 #define PS_SpargeWaterEnableAddress    32
 #define PS_SpargeWaterTemperatureControlAddress    33
 #define PS_SpargeWaterSensorIndexAddress 34
@@ -147,8 +147,11 @@ const unsigned char  DEFAULT_EEPROM[] PROGMEM={
 1, //#define PS_SkipIodineTest     25    //   Skip Iodine Test
 0, //#define PS_IodineTime     26   //    Iodine Time
 0, //#define PS_Whirlpool     27     //  Whirlpool
-//     28 -  31 [ SPACE ]
-'B','M','E','X',
+0, //#define PS_DisableBeep      28  //  Disable beeper (0 = False, 1 = True)
+////     28 -  31 [ SPACE ]
+//'B','M','E','X',
+//     29 -  31 [ SPACE ]
+'M','E','X',
 /*#define PS_SpargeWaterEnableAddress    32
 #define PS_SpargeWaterTemperatureControlAddress    33
 #define PS_SpargeWaterSensorIndexAddress 34
@@ -235,6 +238,14 @@ void EepromInit(void)
 
 }
 
+void SaveDefaultSettingsToEeprom(void)
+{
+  for (byte i=0; i < sizeof(DEFAULT_EEPROM); i++)
+  {
+    SpiEEPROM.write(i, pgm_read_byte_near(& DEFAULT_EEPROM[i]));
+  }
+}  //end SaveDefaultSettingsToEeprom
+
 
 #else //#if USE_SPIFFS_EEPROM
 bool isEepromInitialized(void)
@@ -248,7 +259,7 @@ bool isEepromInitialized(void)
 
 void setEepromDefault(void)
 {
-	for(byte i=0;i<88;i++){
+	for(byte i=0;i<sizeof(DEFAULT_EEPROM);i++){
 		EEPROM.write(i,pgm_read_byte_near(& DEFAULT_EEPROM[i]));
 	}
 }
@@ -302,7 +313,146 @@ void EepromInit(void)
 		setEepromDefault();
 	}
 }
+
+
+void SaveDefaultSettingsToEeprom(void)
+{
+  setEepromDefault();
+}  //end SaveDefaultSettingsToEeprom
+
 #endif //#if USE_SPIFFS_EEPROM
+
+
+void PrintEepromSettings(void)
+{
+#if SerialDebug == true
+  byte byStage;
+
+  Serial.println();
+  Serial.println(F("EEPROM Settings"));
+  Serial.println();
+  
+  Serial.println(F("PID - PWM Settings"));
+  Serial.print(F("   kP: "));
+  Serial.println(readSetting(PS_AddrOfPidSetting(1)));
+  Serial.print(F("   kI: "));
+  Serial.println(readSetting(PS_AddrOfPidSetting(2)));
+  Serial.print(F("   kD: "));
+  Serial.println(readSetting(PS_AddrOfPidSetting(3)));
+  Serial.print(F("   Sample Time: "));
+  Serial.println(readSetting(PS_AddrOfPidSetting(4)));
+  Serial.print(F("   Window Size: "));
+  Serial.println(readSetting(PS_AddrOfPidSetting(5)));
+  Serial.print(F("Boil Heat PWM %: "));
+  Serial.println(readSetting(PS_AddrOfPidSetting(6)));
+  Serial.print(F("Temp Sensor Offset: "));
+  Serial.println(readSetting(PS_AddrOfPidSetting(7)));
+  Serial.print(F("PID Start: "));
+  Serial.println(readSetting(PS_AddrOfPidSetting(8)));
+  Serial.print(F("PID DoughIn: "));
+  Serial.println(readSetting(PS_AddrOfPidSetting(9)));
+  
+  Serial.println(F("Unit Settings"));
+  Serial.print(F("   Temperature Unit: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(0)));
+  Serial.print(F("   No Start Delay: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(1)));
+  Serial.print(F("   Boil Temp - Celcius: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(2)));
+  Serial.print(F("   Boil Temp - Fahrenheit: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(3)));
+  Serial.print(F("   Pump Cycle Time: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(4)));
+  Serial.print(F("   Pump Rest Time: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(5)));
+  Serial.print(F("   Pump on During Pre-Mash: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(6)));
+  Serial.print(F("   Pump on During Mash: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(7)));
+  Serial.print(F("   Pump on During Mash-Out: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(8)));
+  Serial.print(F("   Pump on During Boil: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(9)));
+  Serial.print(F("   Temp Pump Stop - Celcius: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(10)));
+  Serial.print(F("   Temp Pump Stop - Fahrenheit: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(11)));
+  Serial.print(F("   PID Malt Pipe: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(12)));
+  Serial.print(F("   Skip Add Malt: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(13)));
+  Serial.print(F("   Skip Remove Malt: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(14)));
+  Serial.print(F("   Skip Iodine Test: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(15)));
+  Serial.print(F("   Iodine Time: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(16)));
+  Serial.print(F("   Whirlpool: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(17)));
+  Serial.print(F("   Disable Beep: "));
+  Serial.println(readSetting(PS_AddrOfUnitSetting(18)));
+  
+  Serial.println(F("Init Pattern"));
+  Serial.print(F("   Byte 1: "));
+  Serial.println(readSetting(29));
+  Serial.print(F("   Byte 2: "));
+  Serial.println(readSetting(30));
+  Serial.print(F("   Byte 3: "));
+  Serial.println(readSetting(31));
+  
+  Serial.println(F("Auto Settings"));
+  Serial.println(F("   Mash-In Temperature"));
+  Serial.print(F("      Raw C: "));
+  Serial.print(readSettingWord(PS_StageTemperatureAddr(0)));
+  Serial.print(F(", Temp C: "));
+  Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureAddr(0))));
+  Serial.print(F("      Raw F: "));
+  Serial.print(readSettingWord(PS_StageTemperatureAddr(0) + 2));
+  Serial.print(F(", Temp F: "));
+  Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureAddr(0) + 2)));
+  
+  for (int i = 1; i < 7; i++)
+  {
+    Serial.print(F("   Stage "));
+    Serial.println(i);
+    Serial.print(F("      Raw C: "));
+    Serial.print(readSettingWord(PS_StageTemperatureAddr(i)));
+    Serial.print(F(", Temp C: "));
+    Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureAddr(i))));
+    Serial.print(F("      Raw F: "));
+    Serial.print(readSettingWord(PS_StageTemperatureAddr(i) + 2));
+    Serial.print(F(", Temp F: "));
+    Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureAddr(i) + 2)));
+    Serial.print(F("      Stage Time: "));
+    Serial.println(readSetting(PS_StageTimeAddr(i)));
+  }
+  
+  Serial.println(F("   Mash-Out Temperature"));
+  Serial.print(F("      Raw C: "));
+  Serial.print(readSettingWord(PS_StageTemperatureAddr(7)));
+  Serial.print(F(", Temp C: "));
+  Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureAddr(7))));
+  Serial.print(F("      Raw F: "));
+  Serial.print(readSettingWord(PS_StageTemperatureAddr(7) + 2));
+  Serial.print(F(", Temp F: "));
+  Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureAddr(7) + 2)));
+  Serial.print(F("      Stage Time: "));
+  Serial.println(readSetting(PS_StageTimeAddr(7)));
+  
+  Serial.print(F("   Number of Hops: "));
+  Serial.println(readSetting(PS_NumberOfHops));
+  Serial.print(F("   Boil Time: "));
+  Serial.println(readSetting(PS_BoilTime));
+  
+  for (int i = 0; i < 10; i++)
+  {
+    Serial.print(F("   Hop Time "));
+    Serial.print(i + 1);
+    Serial.print(F(": "));
+    Serial.println(readSetting(PS_TimeOfHop(i)));
+  }
+#endif
+}  //end PrintEepromSettings
 
 #endif
 

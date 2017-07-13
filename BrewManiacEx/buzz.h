@@ -82,7 +82,12 @@ void buzzStartPlay(SoundId id, boolean repeat)
 	_playing=true;
 	
 	_buzzingTime = millis();
-	setBuzzOut(HIGH);
+//	setBuzzOut(HIGH);
+  // If beeper is not disabled, then sound the beeper.
+  if (readSetting(PS_DisableBeep) == 0)
+  {
+    setBuzzOut(HIGH);
+  }
 	_buzzing=true;
 }
 
@@ -141,7 +146,12 @@ void buzzThread(void)
 		}
 		else
 		{
-			setBuzzOut(HIGH);
+//      setBuzzOut(HIGH);
+      // If beeper is not disabled, then sound the beeper.
+      if (readSetting(PS_DisableBeep) == 0)
+      {
+        digitalWrite (BuzzControlPin, HIGH);
+      }
 		}
 		_buzzing = ! _buzzing;
 	}

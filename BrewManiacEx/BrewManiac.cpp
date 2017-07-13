@@ -148,6 +148,9 @@ void settingPidEventHandler(byte);
 void settingUnitSetup(void);
 void settingUnitEventHandler(byte);
 
+void ConfigTestSetup(void);
+void ConfigTestEventHandler(byte);
+
 void settingAutoSetup(void);
 void settingAutoEventHandler(byte);
 
@@ -239,10 +242,10 @@ MAIN_SCREEN= 0,
 SETUP_SCREEN =1,
 PID_SETTING_SCREEN= 2,
 UNIT_SETTING_SCREEN= 3,
-AUTO_SETTING_SCREEN = 4,
-
-MANUAL_MODE_SCREEN = 5,
-AUTO_MODE_SCREEN = 6,
+CONFIG_TEST_SCREEN= 4,
+AUTO_SETTING_SCREEN = 5,
+MANUAL_MODE_SCREEN = 6,
+AUTO_MODE_SCREEN = 7,
 
 #if MaximumNumberOfSensors > 1
 SENSOR_SCREEN,
@@ -269,6 +272,10 @@ const CScreen allScreens[]  =
 {
 	&settingUnitSetup,
 	&settingUnitEventHandler,
+},
+{  
+  &ConfigTestSetup,
+  &ConfigTestEventHandler,
 },
 {
 	&settingAutoSetup,
@@ -309,12 +316,13 @@ void setEventMask(byte mask)
 // *************************
 //*  includes, follow Arduino conveniention
 // *************************
-#include "buzz.h"
+//#include "buzz.h"
 
 #include "string.h"
 #include "ui.h"
 
 #include "ps.h"
+#include "buzz.h"
 #include "wi.h"
 
 // *************************
@@ -2263,6 +2271,177 @@ void settingUnitEventHandler(byte)
 	}
 }
 
+
+// ************************************
+// *  Config Test Parameters settings
+// ************************************
+#define CONFIG_TEST_ITEMS         6
+byte _currentConfigTestSetting;
+int iTestBeep;
+int iTestPump;
+int iTestHeat;
+int iTestHeat2;
+
+void settingConfigTestDisplayItem(void)
+{
+  int iDisableBeep = (int)readSetting(PS_DisableBeep);
+  
+  //editItem(str_t label, byte value, byte max, byte min, CDisplayFunc displayFunc)
+  if (_currentConfigTestSetting == 0)
+  {
+    editItem(STR(Disable_Beeper), iDisableBeep, 1, 0, &displayYesNo);
+  }
+  else if (_currentConfigTestSetting == 1)
+  {
+    editItem(STR(Test_Beeper), iTestBeep, 1, 0, &displayOnOff);
+  }
+  else if (_currentConfigTestSetting == 2)
+  {
+    editItem(STR(Test_Pump), iTestPump, 1, 0, &displayOnOff);
+  }
+  else if (_currentConfigTestSetting == 3)
+  {
+    editItem(STR(Test_Heat), iTestHeat, 1, 0, &displayOnOff);
+  }
+  else if (_currentConfigTestSetting == 4)
+  {
+    editItem(STR(Test_Aux_Heat), iTestHeat2, 1, 0, &displayOnOff);
+  }
+  else if (_currentConfigTestSetting == 5)
+  {
+    uiButtonLabel(ButtonLabel(Yes_No));
+    uiSettingTitle(STR(Init_EEPROM));
+  }
+}  //end settingConfigTestDisplayItem
+
+
+// Initialization of the screen
+void ConfigTestSetup(void)
+{
+  uiButtonLabel(ButtonLabel(Up_Down_x_Ok));
+  _currentConfigTestSetting = 0;
+  iTestBeep = 0;
+  iTestPump = 0;
+  iTestHeat = 0;
+  iTestHeat2 = 0;
+  settingConfigTestDisplayItem();
+}  //end ConfigTestSetup
+
+
+void ConfigTestEventHandler(byte)
+{
+  byte value = (byte)editItemValue();
+  
+  if (btnIsEnterPressed)
+  {
+    digitalWrite (BuzzControlPin, LOW);   // Make sure that the beeper is off.
+    pumpOff();                            // Make sure that the pump is off.
+//    heatOff();                          // Make sure that the heat is off.
+    // Make sure that the heat is off.
+    heatPhysicalOff();
+    uiHeatingStatus(HeatingStatus_Off);
+
+    if (_currentConfigTestSetting == 0) // Disable beep setting
+    {
+      updateSetting(PS_DisableBeep, value);
+    }
+
+    // Goto next item
+    _currentConfigTestSetting++;
+    
+    if (CONFIG_TEST_ITEMS == _currentConfigTestSetting)
+    {
+      uiClearSettingRow();
+      switchApplication(SETUP_SCREEN);
+      return;
+    }
+    settingConfigTestDisplayItem();
+  }
+  else if (btnIsStartPressed)
+  {
+    if (_currentConfigTestSetting == 5)
+    {
+      Serial.println();
+      Serial.println(F("Save Default Settings to EEPROM"));
+      Serial.println();
+      SaveDefaultSettingsToEeprom();
+      PrintEepromSettings();
+// Todo: I think the following needs to be included to make sure all the variables are initialized to what is in the EEPROM.
+//      EepromInitialize();
+
+      _currentConfigTestSetting++;
+      uiClearSettingRow();
+      switchApplication(SETUP_SCREEN);
+      return;
+    }
+  }
+  else if (btnIsUpPressed)
+  {
+    if (_currentConfigTestSetting != 5)
+    {
+      editItemChange(+1);
+  
+      Serial.println(F("Button Up is pressed in the Test/Config Menu"));
+  
+      if (_currentConfigTestSetting == 1)
+      {
+        digitalWrite(BuzzControlPin, HIGH);
+        Serial.println(F("Beeper On"));
+      }
+      else if (_currentConfigTestSetting == 2)
+      {
+        pumpOn();
+        Serial.println(F("Pump On"));
+      }
+      else if (_currentConfigTestSetting == 3)
+      {
+        heatPhysicalOn();
+        uiHeatingStatus(HeatingStatus_On);
+        Serial.println(F("Main Heat On"));
+      }
+      else if (_currentConfigTestSetting == 4)
+      {
+// Todo
+//        heatPhysicalOn();
+//        uiHeatingStatus(HeatingStatus_On);
+        Serial.println(F("Aux Heat On"));
+      }
+    }
+  }
+  else if (btnIsDownPressed)
+  {
+    if (_currentConfigTestSetting != 5)
+    {
+      editItemChange(-1);
+  
+      Serial.println(F("Button Down is pressed in the Test/Config Menu"));
+  
+      if (_currentConfigTestSetting == 1)
+      {
+        digitalWrite (BuzzControlPin, LOW);
+        Serial.println(F("Beeper Off"));
+      }
+      else if (_currentConfigTestSetting == 2)
+      {
+        pumpOff();
+        Serial.println(F("Pump Off"));
+      }
+      else if (_currentConfigTestSetting == 3)
+      {
+        heatOff();
+        Serial.println(F("Main Heat Off"));
+      }
+      else if (_currentConfigTestSetting == 4)
+      {
+// Todo
+//        heatOff();
+        Serial.println(F("Aux Heat Off"));
+      }
+    }
+  }
+}  //end ConfigTestEventHandler
+
+
 // *************************
 //*  Automation settings
 // *************************
@@ -2863,7 +3042,7 @@ void spargeMenuEventHandler(byte)
 //*  Level 1 Menu (settings)
 // *************************
 
-str_t const level1Menu[]={STR(PID_PWM),STR(Unit_Parameters),STR(Set_Automation)
+str_t const level1Menu[]={STR(PID_PWM),STR(Unit_Parameters),STR(Config_Test),STR(Set_Automation)
 #if MaximumNumberOfSensors > 1
 ,STR(Sensor_Setting)
 #endif
@@ -2875,6 +3054,7 @@ str_t const level1Menu[]={STR(PID_PWM),STR(Unit_Parameters),STR(Set_Automation)
 const ScreenIdType level1Screens[]={
 	PID_SETTING_SCREEN,
 	UNIT_SETTING_SCREEN,
+	CONFIG_TEST_SCREEN,
 	AUTO_SETTING_SCREEN
 
 #if MaximumNumberOfSensors > 1
@@ -5622,7 +5802,7 @@ void brewmaniac_setup() {
 	wiInitialize();
 #endif
 
-
+  PrintEepromSettings();
 }
 
 //*********************************************************************

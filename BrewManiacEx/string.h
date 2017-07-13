@@ -176,6 +176,7 @@ DefineButtonLabel( AccessPoint_Yes,   " Run AP Mode?  Yes",34);
 DefineButtonLabel( Extend_Skip_Back,   "Extend - Skip Back",35);
 
 DefineButtonLabel( Up_Down_Start_Pmp,  "UP* *DWN Start Pmp", 36);
+DefineButtonLabel( Yes_No,            "           Yes  No", 37);
 // end of menu
 
 StringConst( SensorResolution ,"Sensor Res.");
@@ -254,6 +255,14 @@ StringConst( Pump_Stop, "Pump Stop");
 StringConst( PID_Pipe, "PID Pipe");
 StringConst( Active, "Active");
 StringConst( Passive, "Passive");
+
+StringConst( Config_Test, "Config and Test");
+StringConst( Init_EEPROM, "Init EEPROM");
+StringConst( Disable_Beeper, "Disable Beep");
+StringConst( Test_Beeper, "Test Beep");
+StringConst( Test_Pump, "Test Pump");
+StringConst( Test_Heat, "Test Main Heat");
+StringConst( Test_Aux_Heat, "Test Aux Heat");
 
 StringConst( Skip_Add, "Skip Add");
 StringConst( Yes, "Yes");

@@ -49,6 +49,7 @@
 #define SerialDebug false
 #define DebugPort Serial
 #define SpargeHeaterSupport false
+#define DualHeaterSupport true
 #define MANUAL_PUMP_MASH true
 // DELAY start
 #define NoDelayStart true

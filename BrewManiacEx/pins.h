@@ -132,7 +132,7 @@ inline void setBuzzOut(byte v)
 #endif
 }
 
-#if SpargeHeaterSupport == true
+#if SpargeHeaterSupport == true || DualHeaterSupport == true
 inline void setAuxHeaterOut(byte v)
 {
 	digitalWrite (AuxHeatControlPin, v);
@@ -170,11 +170,10 @@ void initIOPins(void)
 #endif
 	setBuzzOut(LOW);
 	
-#if SpargeHeaterSupport == true
+#if SpargeHeaterSupport == true || DualHeaterSupport == true
 	pinMode (AuxHeatControlPin, OUTPUT);
 	setAuxHeaterOut(LOW);
 #endif
-
 }
 #endif
 

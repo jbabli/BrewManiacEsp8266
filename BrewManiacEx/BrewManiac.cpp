@@ -65,6 +65,9 @@ float gSettingTemperature;
 float gBoilStageTemperature;
 float gPidStart;
 
+#if DualHeaterSupport == true
+  boolean g_bPhysicalAuxHeatingOn;
+#endif
 
 #if MaximumNumberOfSensors > 1
 float gSensorCalibrations[MaximumNumberOfSensors];
@@ -1155,6 +1158,19 @@ void heatPhysicalOn(void)
 		wiReportHeater(HeatingStatus_On);
 
 	}
+
+#if DualHeaterSupport == true
+    if ((pidSetpoint - pidInput) >= (gPidStart + .02))
+    {
+      setAuxHeaterOut(HIGH);
+      g_bPhysicalAuxHeatingOn = true;
+    }
+    else
+    {
+      setAuxHeaterOut(LOW);
+      g_bPhysicalAuxHeatingOn = false;
+    }
+#endif
 }
 
 void heatPhysicalOff(void)
@@ -1164,6 +1180,12 @@ void heatPhysicalOff(void)
 		setHeaterOut(LOW);
 		_physicalHeattingOn=false;
 	}
+
+#if DualHeaterSupport == true
+    setAuxHeaterOut(LOW);
+    g_bPhysicalAuxHeatingOn = false;
+#endif
+
 	if(gIsHeatOn){
 		uiHeatingStatus(HeatingStatus_On_PROGRAM_OFF);
 		wiReportHeater(HeatingStatus_On_PROGRAM_OFF);
@@ -1346,7 +1368,10 @@ void heatInitialize(void)
 	_gReportedPowerState= PowerStateIdle;
 	_gTimeEnterIdle= millis();
 #endif
-	
+
+#if DualHeaterSupport
+  g_bPhysicalAuxHeatingOn = false;
+#endif
 }
 // the should be call before REAL action instead of system startup
 void heatLoadParameters(void)
@@ -1531,6 +1556,18 @@ void heaterControl(void)
    	 		heatPhysicalOn();
    	 		#endif
    	 	}
+#if DualHeaterSupport == true
+      if ((g_bPhysicalAuxHeatingOn == false) && (pidOutput == 255) && ((pidSetpoint - pidInput) >= (gPidStart + .02)))
+      {
+        setAuxHeaterOut(HIGH);
+        g_bPhysicalAuxHeatingOn = true;
+      }
+      else if ((g_bPhysicalAuxHeatingOn == true) && ((pidSetpoint - pidInput) < (gPidStart + .02)))
+      {
+        setAuxHeaterOut(LOW);
+        g_bPhysicalAuxHeatingOn = false;
+      }
+#endif
   	}
   	else 
   	{
@@ -3775,9 +3812,9 @@ void autoModeEnterDoughIn(void)
 	// start heat
 	heatOn(true);	
 	if(gIsUseFahrenheit)
-		setAdjustTemperature(167,77);
+		setAdjustTemperature(167,68);
 	else
-		setAdjustTemperature(75.0,25.0);
+		setAdjustTemperature(75.0,20.0);
 	gIsEnterPwm=false;
 	
 #if SpargeHeaterSupport == true
@@ -3906,6 +3943,15 @@ void autoModeNextMashingStep(bool resume)
 	setSensorForStage(SensorForMash);
 #endif
 		
+    // Make the editable ranges the same as when programming a recipe.
+    if (gIsUseFahrenheit)
+    {
+      setAdjustTemperature(169, 77);
+    }
+    else
+    {
+      setAdjustTemperature(76.0, 25.0);
+    }
 	}
 	else if(_mashingStep ==7)
 	{
@@ -3914,6 +3960,15 @@ void autoModeNextMashingStep(bool resume)
 #if MaximumNumberOfSensors > 1
 	setSensorForStage(SensorForMash);
 #endif
+    // Make the editable ranges the same as when programming a recipe.
+    if (gIsUseFahrenheit)
+    {
+      setAdjustTemperature(176, 167);
+    }
+    else
+    {
+      setAdjustTemperature(80.0, 75.0);
+    }
 	}
 	
 #if	MANUAL_PUMP_MASH == true

@@ -96,7 +96,7 @@ void wiReadRecipe(AutomationRecipe *recipe)
 		}
 		else
 		{
-			int temp=readSettingWord(PS_StageTemperatureAddr(stage));
+			int temp=readSettingWord(PS_StageTemperatureCelsiusAddr(stage));
 			recipe->restTemp[stage]=TempFromStorage(temp);
 		}
 	}
@@ -126,7 +126,7 @@ void wiSetRecipe(AutomationRecipe *recipe)
 		else if(stage >=6 && time==0) time=1;
  
   		if(time !=0)
- 	 		updateSettingWord(PS_StageTemperatureAddr(stage),ToTempInStorage(recipe->restTemp[stage]));
+ 	 		updateSettingWord(PS_StageTemperatureCelsiusAddr(stage),ToTempInStorage(recipe->restTemp[stage]));
   	
   		updateSetting(PS_StageTimeAddr(stage),time);
 	}

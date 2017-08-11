@@ -732,14 +732,22 @@ void uiDisplaySettingTemperature(float settemp)
 {
 	char buffer[20];
 	float displayTemp;
-	displayTemp = settemp;
 
-    int digitNum=sprintFloat((char*)buffer,displayTemp,2);
-    buffer[digitNum]='\0';
-    
-   	uiLcdClear(12,1,6);
-    uiLcdPrint(12+6 - digitNum,1,buffer);
-    uiLcdDrawSymbol(18,1,LcdCharSetpoint);
+  if (gIsUseFahrenheit)
+  {
+    displayTemp=ConvertC2F(settemp);
+  }
+  else
+  {
+    displayTemp = settemp;
+  }
+
+  int digitNum=sprintFloat((char*)buffer,displayTemp,2);
+  buffer[digitNum]='\0';
+  
+ 	uiLcdClear(12,1,6);
+  uiLcdPrint(12+6 - digitNum,1,buffer);
+  uiLcdDrawSymbol(18,1,LcdCharSetpoint);
 }
 
 void uiClearSettingTemperature(void)

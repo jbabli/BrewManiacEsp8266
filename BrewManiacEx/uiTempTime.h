@@ -230,6 +230,8 @@ void uiPrintTemperature(byte col, byte row, float displayTemp)
 
 void uiDisplayTemperatureAndRunningTime(void)
 {
+  float displayTemp = gCurrentTemperature;
+
     if(_uiDisplayTemperature && (
     (_lastShownTemperature != gCurrentTemperature)
 #if MaximumNumberOfSensors > 1
@@ -242,7 +244,13 @@ void uiDisplayTemperatureAndRunningTime(void)
 			_lastShownAuxTemperature = gAuxTemperature;
 #endif  
 
-	    uiPrintTemperature(_uiTpDisplayCol,_uiTpDisplayRow,gCurrentTemperature);
+      if (gIsUseFahrenheit) 
+      {
+        displayTemp = ConvertC2F(gCurrentTemperature);
+      }
+      uiPrintTemperature(_uiTpDisplayCol, _uiTpDisplayRow, displayTemp);
+
+//	    uiPrintTemperature(_uiTpDisplayCol,_uiTpDisplayRow,gCurrentTemperature);
 		uiLcdDrawSymbol(_uiTpDisplayCol +6,_uiTpDisplayRow,LcdCharDegree);
 #if MaximumNumberOfSensors > 1
 	    uiPrintTemperature(_uiAuxTpDisplayCol,_uiAuxTpDisplayRow,gAuxTemperature);

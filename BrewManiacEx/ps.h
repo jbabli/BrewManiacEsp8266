@@ -26,7 +26,7 @@
 #define PS_WindowSize      5  //     WindowSize
 #define PS_BoilHeat      6    //   Boil Heat %
 #define PS_Offset     7      // Offset
-#define PS_PID_Start   8      // star PID 
+#define PS_PID_Start   8      // start PID 
 #define PS_PID_DoughIn  9      // PID DoughIn
 
 //  UNIT MENU  
@@ -35,22 +35,23 @@
 #define PS_AddrOfUnitSetting(i) (PS_UnitBase+i)
 //#define PS_SensorType     11      // Sensor Type
 #define PS_NoDelayStart  11      // delaystart
-#define PS_BoilTemp     12       //Temp Boil °C
-//     13       Temp Boil °F
+// Space     12
+// Space     13
 #define PS_PumpCycle     14  //     Time Pump Cycle
 #define PS_PumpRest     15   //    Time Pump Rest
 #define PS_PumpPreMash     16  //     Pump PreMash
 #define PS_PumpOnMash     17   //    Pump on Mash
 #define PS_PumpOnMashOut     18  //     Pump on MashOut
 #define PS_PumpOnBoil      19     //  Pump on Boil
-#define PS_TempPumpRest     20    //   Temp Pump Rest °C
-//     21       Temp Pump Rest °F
+#define PS_TempPumpRestC    20    //   Temp Pump Rest °C
+#define PS_TempPumpRestF    21    //   Temp Pump Rest °F
 #define PS_PidPipe     22     //  PID Pipe
 #define PS_SkipAddMalt     23  //     Skip Add Malt
 #define PS_SkipRemoveMalt     24  //     Skip Remove Malt
 #define PS_SkipIodineTest     25    //   Skip Iodine Test
 #define PS_IodineTime     26   //    Iodine Time
 #define PS_Whirlpool     27     //  Whirlpool
+
 #define PS_DisableBeep      28  //  Disable beeper
 //     29 -  31 foot print 
 #define PS_SpargeWaterEnableAddress    32
@@ -62,7 +63,8 @@
 
 //  RUN  (HTemp °C - LTemp °C - HTemp °F - LTemp °F - Time)
 #define PS_RunBase 37
-#define PS_StageTemperatureAddr(i) ((PS_RunBase)+(i)* 5)
+#define PS_StageTemperatureCelsiusAddr(i) ((PS_RunBase) + (i) * 5)
+#define PS_StageTemperatureFahrenheitAddr(i) ((PS_RunBase) + ((i) * 5) + 2)
 #define PS_StageTimeAddr(i) ((PS_RunBase)+(i)*5+4)
 #define ToTempInStorage(t) ((int)((t)*16))
 #define TempFromStorage(t)  ((float)(t)/16.0)
@@ -129,18 +131,18 @@ const unsigned char  DEFAULT_EEPROM[] PROGMEM={
 50, //#define PS_Offset     7      // Offset
 30, //#define PID Start     8   //    Hysteresi 
 0, //      9       [ SPACE ]
-0, //#define PS_TempUnit   10     //  Scale Temp
-0,  //#define NoDelay Start     11      //
-99, //#define PS_BoilTemp     12       //Temp Boil °C
-0, //     13       Temp Boil °F
+1, //#define PS_TempUnit   10     //  Scale Temp (0 = C, 1 = F)
+1,  //#define NoDelay Start     11      //
+0, // space
+0, // space
 15, //#define PS_PumpCycle     14  //     Time Pump Cycle
 0, //#define PS_PumpRest     15   //    Time Pump Rest
-0, //#define PS_PumpPreMash     16  //     Pump PreMash
+1, //#define PS_PumpPreMash     16  //     Pump PreMash
 1, //#define PS_PumpOnMash     17   //    Pump on Mash
 1, //#define PS_PumpOnMashOut     18  //     Pump on MashOut
-0, //#define PS_PumpOnBoil      19     //  Pump on Boil
+1, //#define PS_PumpOnBoil      19     //  Pump on Boil
 105, //#define PS_TempPumpRest     20    //   Temp Pump Rest °C
-0, //     21       Temp Pump Rest °F
+221, //     21       Temp Pump Rest °F
 0, //#define PS_PidPipe     22     //  PID Pipe
 0, //#define PS_SkipAddMalt     23  //     Skip Add Malt
 0, //#define PS_SkipRemoveMalt     24  //     Skip Remove Malt
@@ -191,9 +193,142 @@ const unsigned char  DEFAULT_EEPROM[] PROGMEM={
 };
 #include "SpiffsEeprom.h"
 
+
+// Todo: Possibly change the min and maxes to more realistic values once things are all working correctly.
+const byte c_byStageTempMinC[] = {20, 20, 20, 20, 20, 20, 20, 75};
+const byte c_byStageTempMaxC[]= {80, 80, 80, 80, 80, 80, 80, 80};
+const byte c_byStageTempDefaultC[] = {71, 66, 49, 49, 60, 65, 65, 75};
+const byte c_byStageTempMinF[] = {68, 68, 68, 68, 68, 68, 68, 167};
+const byte c_byStageTempMaxF[] = {176, 176, 176, 176, 176, 176, 176, 176};
+const byte c_byStageTempDefaultF[] = {160, 152, 120, 120, 140, 149, 149, 168};
+const byte c_StageTimeMin[] = {1, 1, 0, 0, 0, 0, 0, 1};
+const byte c_StageTimeMax[] = {140, 140, 140, 140, 140, 140, 140, 140};
+const byte c_StageTimeDefault[] = {1, 60, 0, 0, 0, 0, 0, 10};
+
+
+byte readSetting(int addr);
+bool updateSetting(int addr, byte value);
+word readSettingWord(int addr);
+word updateSettingWord(int addr, word value);
+
+
+void InitEepromStageTempAndTime(byte byStage)
+{
+  unsigned int ui16Temperature;
+  unsigned int ui16Temp;
+  byte byTime;
+  byte byTempMin;
+  byte byTempMax;
+  byte byTempDefault;
+  byte byTimeMin;
+  byte byTimeMax;
+  byte byTimeDefault;
+  
+  if ((byStage >= 0) && (byStage <= 7))
+  {
+#if SerialDebug == true  
+    Serial.println();
+    Serial.print(F("Checking EEPROM settings for Stage: "));
+    Serial.println(byStage);
+#endif
+
+    if (gIsUseFahrenheit)
+    {
+      byTempMin = c_byStageTempMinF[byStage];
+      byTempMax = c_byStageTempMaxF[byStage];
+      byTempDefault = c_byStageTempDefaultF[byStage];
+    }
+    else
+    {
+      byTempMin = c_byStageTempMinC[byStage];
+      byTempMax = c_byStageTempMaxC[byStage];
+      byTempDefault = c_byStageTempDefaultC[byStage];
+    }
+
+    byTimeMin = c_StageTimeMin[byStage];
+    byTimeMax = c_StageTimeMax[byStage];
+    byTimeDefault = c_StageTimeDefault[byStage];
+
+    if (gIsUseFahrenheit)
+    {
+      ui16Temperature = readSettingWord(PS_StageTemperatureFahrenheitAddr(byStage));
+    }
+    else
+    {
+      ui16Temperature = readSettingWord(PS_StageTemperatureCelsiusAddr(byStage));
+    }
+
+    byTime = readSetting(PS_StageTimeAddr(byStage));
+
+    if (gIsUseFahrenheit)
+    {
+      // Update the celsius value in EEPROM as this is the temperature that is used by the control algorithm.
+      ui16Temp = ((ui16Temperature - (32 * 16)) / 1.8);
+      updateSettingWord(PS_StageTemperatureCelsiusAddr(byStage), ui16Temp);
+    
+#if SerialDebug == true  
+      Serial.print(F("   Temperature F: "));
+      Serial.print(TempFromStorage(ui16Temperature));
+      Serial.print(F(", Temperature C used for control: "));
+      Serial.println(TempFromStorage(ui16Temp));
+      Serial.print(F("   Temperature Min F: "));
+      Serial.println(byTempMin, DEC);
+      Serial.print(F("   Temperature Max F: "));
+      Serial.println(byTempMax, DEC);
+#endif
+    }
+    else
+    {
+#if SerialDebug == true  
+      Serial.print(F("   Temperature C: "));
+      Serial.println(TempFromStorage(ui16Temperature));
+      Serial.print(F("   Temperature Min C: "));
+      Serial.println(byTempMin, DEC);
+      Serial.print(F("   Temperature Max C: "));
+      Serial.println(byTempMax, DEC);
+#endif
+    }
+
+#if SerialDebug == true  
+    Serial.print(F("   Time: "));
+    Serial.println(byTime, DEC);
+    Serial.print(F("   Time Min: "));
+    Serial.println(byTimeMin, DEC);
+    Serial.print(F("   Time Max: "));
+    Serial.println(byTimeMax, DEC);
+#endif
+
+    if ((ui16Temperature < ToTempInStorage(byTempMin)) || (ui16Temperature > ToTempInStorage(byTempMax)))
+    {
+#if SerialDebug == true  
+      Serial.println(F("   Temperature out of range, so using default."));
+#endif
+
+      if (gIsUseFahrenheit)
+      {
+        updateSettingWord(PS_StageTemperatureFahrenheitAddr(byStage), ToTempInStorage(byTempDefault));
+      }
+      else
+      {
+        updateSettingWord(PS_StageTemperatureCelsiusAddr(byStage), ToTempInStorage(byTempDefault));
+      }
+    }
+
+    if ((byTime < byTimeMin) || (byTime > byTimeMax))
+    {
+#if SerialDebug == true  
+      Serial.println(F("Time out of range, so using default."));
+#endif
+      updateSetting(PS_StageTimeAddr(byStage), byTimeDefault);
+    }
+  }
+}  //end InitEepromStageTempAndTime
+
+
 #define USE_SPIFFS_EEPROM true
 
 #if USE_SPIFFS_EEPROM
+
 
 void commitSetting(void)
 {
@@ -221,6 +356,30 @@ word updateSettingWord(int addr,word value)
   	SpiEEPROM.write((addr+1),lowByte(value));
 }
 
+
+void SaveDefaultSettingsToEeprom(void)
+{
+  byte byIndex;
+  
+  for (byte byIndex = 0; byIndex < PS_RunBase; byIndex++)
+  {
+    SpiEEPROM.write(byIndex, pgm_read_byte_near(& DEFAULT_EEPROM[byIndex]));
+  }
+
+  for (byte byIndex = 0; byIndex <= 7; byIndex++)
+  {
+    updateSettingWord(PS_StageTemperatureCelsiusAddr(byIndex), ToTempInStorage(c_byStageTempDefaultC[byIndex]));
+    updateSettingWord(PS_StageTemperatureFahrenheitAddr(byIndex), ToTempInStorage(c_byStageTempDefaultF[byIndex]));
+    updateSetting(PS_StageTimeAddr(byIndex), c_StageTimeDefault[byIndex]);
+  }
+
+  for (byte byIndex = PS_NumberOfHops; byIndex < sizeof(DEFAULT_EEPROM); byIndex++)
+  {
+    SpiEEPROM.write(byIndex, pgm_read_byte_near(& DEFAULT_EEPROM[byIndex]));
+  }
+}  //end SaveDefaultSettingsToEeprom
+
+
 void EepromInit(void)
 {
 	SpiEEPROM.begin(256);
@@ -229,23 +388,10 @@ void EepromInit(void)
 	 		&& SpiEEPROM.read(30)=='E'
 	 		&& SpiEEPROM.read(31)=='X')){
 
-//		Serial.printf("re-initialized EEPROM data\n");
-
-		for(byte i=0;i<sizeof(DEFAULT_EEPROM);i++){
-			SpiEEPROM.write(i,pgm_read_byte_near(& DEFAULT_EEPROM[i]));
-		}
+    SaveDefaultSettingsToEeprom();
 	}
 
 }
-
-void SaveDefaultSettingsToEeprom(void)
-{
-  for (byte i=0; i < sizeof(DEFAULT_EEPROM); i++)
-  {
-    SpiEEPROM.write(i, pgm_read_byte_near(& DEFAULT_EEPROM[i]));
-  }
-}  //end SaveDefaultSettingsToEeprom
-
 
 #else //#if USE_SPIFFS_EEPROM
 bool isEepromInitialized(void)
@@ -259,9 +405,23 @@ bool isEepromInitialized(void)
 
 void setEepromDefault(void)
 {
-	for(byte i=0;i<sizeof(DEFAULT_EEPROM);i++){
-		EEPROM.write(i,pgm_read_byte_near(& DEFAULT_EEPROM[i]));
-	}
+  for (byte i = 0; i < PS_RunBase; i++)
+  {
+    EEPROM.write(i, pgm_read_byte_near(& DEFAULT_EEPROM[i]));
+  }
+
+  for (byte byStage = 0; byStage <= 7; byStage++)
+  {
+    byTempMin = c_byStageTempMinF[byStage];
+    updateSettingWord(PS_StageTemperatureCelsiusAddr(byStage), ToTempInStorage(c_byStageTempDefaultC[byStage]));
+    updateSettingWord(PS_StageTemperatureFahrenheitAddr(byStage), ToTempInStorage(c_byStageTempDefaultF[byStage]));
+    updateSetting(PS_StageTimeAddr(byStage), c_StageTimeDefault[byStage]);
+  }
+
+  for (byte i = PS_NumberOfHops; i < sizeof(DEFAULT_EEPROM); i++)
+  {
+    EEPROM.write(i, pgm_read_byte_near(& DEFAULT_EEPROM[i]));
+  }
 }
 
 bool _eepromDirty=false;
@@ -281,7 +441,8 @@ byte readSetting(int addr)
 
 bool updateSetting(int addr,byte value)
 {
-    byte old=readSetting(addr);
+  byte old=readSetting(addr);
+	
 	if(old != value){
 		EEPROM.write(addr,value);
 		_eepromDirty = true;
@@ -297,8 +458,6 @@ word readSettingWord(int addr)
 
 word updateSettingWord(int addr,word value)
 {
-  	//EEPROM.update(addr,highByte(value));
-  	//EEPROM.update((addr+1),lowByte(value));
   	EEPROM.write(addr,highByte(value));
   	EEPROM.write((addr+1),lowByte(value));
 	_eepromDirty = true;
@@ -310,8 +469,8 @@ void EepromInit(void)
 
 	if(!isEepromInitialized())
 	{
-		setEepromDefault();
-	}
+    SaveDefaultSettingsToEeprom();
+  }
 }
 
 
@@ -357,10 +516,6 @@ void PrintEepromSettings(void)
   Serial.println(readSetting(PS_AddrOfUnitSetting(0)));
   Serial.print(F("   No Start Delay: "));
   Serial.println(readSetting(PS_AddrOfUnitSetting(1)));
-  Serial.print(F("   Boil Temp - Celcius: "));
-  Serial.println(readSetting(PS_AddrOfUnitSetting(2)));
-  Serial.print(F("   Boil Temp - Fahrenheit: "));
-  Serial.println(readSetting(PS_AddrOfUnitSetting(3)));
   Serial.print(F("   Pump Cycle Time: "));
   Serial.println(readSetting(PS_AddrOfUnitSetting(4)));
   Serial.print(F("   Pump Rest Time: "));
@@ -373,7 +528,7 @@ void PrintEepromSettings(void)
   Serial.println(readSetting(PS_AddrOfUnitSetting(8)));
   Serial.print(F("   Pump on During Boil: "));
   Serial.println(readSetting(PS_AddrOfUnitSetting(9)));
-  Serial.print(F("   Temp Pump Stop - Celcius: "));
+  Serial.print(F("   Temp Pump Stop - Celsius: "));
   Serial.println(readSetting(PS_AddrOfUnitSetting(10)));
   Serial.print(F("   Temp Pump Stop - Fahrenheit: "));
   Serial.println(readSetting(PS_AddrOfUnitSetting(11)));
@@ -403,39 +558,39 @@ void PrintEepromSettings(void)
   Serial.println(F("Auto Settings"));
   Serial.println(F("   Mash-In Temperature"));
   Serial.print(F("      Raw C: "));
-  Serial.print(readSettingWord(PS_StageTemperatureAddr(0)));
+  Serial.print(readSettingWord(PS_StageTemperatureCelsiusAddr(0)));
   Serial.print(F(", Temp C: "));
-  Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureAddr(0))));
+  Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureCelsiusAddr(0))));
   Serial.print(F("      Raw F: "));
-  Serial.print(readSettingWord(PS_StageTemperatureAddr(0) + 2));
+  Serial.print(readSettingWord(PS_StageTemperatureFahrenheitAddr(0)));
   Serial.print(F(", Temp F: "));
-  Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureAddr(0) + 2)));
+  Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureFahrenheitAddr(0))));
   
   for (int i = 1; i < 7; i++)
   {
     Serial.print(F("   Stage "));
     Serial.println(i);
     Serial.print(F("      Raw C: "));
-    Serial.print(readSettingWord(PS_StageTemperatureAddr(i)));
+    Serial.print(readSettingWord(PS_StageTemperatureCelsiusAddr(i)));
     Serial.print(F(", Temp C: "));
-    Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureAddr(i))));
+    Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureCelsiusAddr(i))));
     Serial.print(F("      Raw F: "));
-    Serial.print(readSettingWord(PS_StageTemperatureAddr(i) + 2));
+    Serial.print(readSettingWord(PS_StageTemperatureFahrenheitAddr(i)));
     Serial.print(F(", Temp F: "));
-    Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureAddr(i) + 2)));
+    Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureFahrenheitAddr(i))));
     Serial.print(F("      Stage Time: "));
     Serial.println(readSetting(PS_StageTimeAddr(i)));
   }
   
   Serial.println(F("   Mash-Out Temperature"));
   Serial.print(F("      Raw C: "));
-  Serial.print(readSettingWord(PS_StageTemperatureAddr(7)));
+  Serial.print(readSettingWord(PS_StageTemperatureCelsiusAddr(7)));
   Serial.print(F(", Temp C: "));
-  Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureAddr(7))));
+  Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureCelsiusAddr(7))));
   Serial.print(F("      Raw F: "));
-  Serial.print(readSettingWord(PS_StageTemperatureAddr(7) + 2));
+  Serial.print(readSettingWord(PS_StageTemperatureFahrenheitAddr(7)));
   Serial.print(F(", Temp F: "));
-  Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureAddr(7) + 2)));
+  Serial.println(TempFromStorage(readSettingWord(PS_StageTemperatureFahrenheitAddr(7))));
   Serial.print(F("      Stage Time: "));
   Serial.println(readSetting(PS_StageTimeAddr(7)));
   

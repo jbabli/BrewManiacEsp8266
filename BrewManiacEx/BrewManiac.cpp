@@ -2250,26 +2250,7 @@ void settingUnitDisplayItem(void)
 		editItem(STR(Set_Degree),value,1,0,&displayDegreeSymbol);
 	else if(_currentUnitSetting==1)
 		editItem(STR(No_Delay_Start),value,1,0,&displayYesNo);
-	else if(_currentUnitSetting==2){
-	#if DEVELOP_SETTING_VALUE == true	
-		int min= 10;
-	#else
-		int min= 90;
-	#endif
-	
-		editItem(STR(Temp_Boil),value,105,min,&displaySimpleTemperature);
-	}
-	else if(_currentUnitSetting==3)
-  {
-  #if DEVELOP_SETTING_VALUE == true 
-    int min= 50;
-  #else
-    int min= 194;
-  #endif
-  
-    editItem(STR(Temp_Boil),value,221,min,&displaySimpleTemperature);
-
-	}else if(_currentUnitSetting==4){
+	else if(_currentUnitSetting==4){
 		#if UsePaddleInsteadOfPump
 		editItem(STR(Pump_Cycle),value,30,5,&displayTimeSec);
 		#else
@@ -2332,24 +2313,11 @@ void settingUnitEventHandler(byte)
 			temperatureUnitChange((bool) value);
 		}
 		
-    // PS_BoilTempF setting, then change the PS_BoilTempC so that if we switch modes they are in the ballpark, and also since
-    // celsius is the default units for control mode.
-    if (_currentUnitSetting == 3)
-    {
-      updateSetting(PS_AddrOfUnitSetting(2), ConvertF2C(value));
-    }
-
     // PS_TempPumpRestF setting, then change the PS_TempPumpRestC so that if we switch modes they are in the ballpark, and also since
     // celsius is the default units for control mode.
     if (_currentUnitSetting == 11)
     {
       updateSetting(PS_AddrOfUnitSetting(10), ConvertF2C(value));
-    }
-
-    // PS_BoilTempC setting, then change the PS_BoilTempF so that if we switch modes they are in the ballpark.
-    if (_currentUnitSetting == 2)
-    {
-      updateSetting(PS_AddrOfUnitSetting(3), ConvertC2F(value));
     }
 
     // PS_TempPumpRestC setting, then change the PS_TempPumpRestF so that if we switch modes they are in the ballpark.
@@ -2361,17 +2329,22 @@ void settingUnitEventHandler(byte)
 		//goto next item
 		_currentUnitSetting++;
 		
-		// use C only internally.
+    if ((_currentUnitSetting == 2) || (_currentUnitSetting == 3))
+    {
+        _currentUnitSetting = 4;
+    }
+    
+    // use C only internally.
     if (gIsUseFahrenheit)
     {
-      if ((_currentUnitSetting == 10) || (_currentUnitSetting == 2))
+      if (_currentUnitSetting == 10)
       {
         _currentUnitSetting++;
       }
     }
     else
     {
-      if ((_currentUnitSetting == 11) || (_currentUnitSetting == 3))
+      if (_currentUnitSetting == 11)
       {
         _currentUnitSetting++;
       }

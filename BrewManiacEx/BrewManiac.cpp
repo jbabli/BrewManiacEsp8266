@@ -1953,7 +1953,14 @@ void displayTempShift50Divide10(int data)
 {
 	float fvalue=((float)data -50.0) /10.0;
 	
-	uiSettingShowTemperature(fvalue,1);
+  if (gIsUseFahrenheit)
+  {
+    uiSettingShowTemperature(fvalue * 1.8, 1);
+  }
+  else
+  {
+    uiSettingShowTemperature(fvalue, 1);
+  }
 }
 
 void displayTempDivide10(int data)

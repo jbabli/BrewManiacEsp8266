@@ -237,7 +237,7 @@ StringConst( Pump_PreMash, "Stir PreMash");
 #else
 StringConst( Pump_Cycle, "Pump Cycle");
 StringConst( Pump_Rest, "Pump Rest");
-StringConst( Pump_PreMash, "Pump PreMash");
+StringConst( Pump_PreMash, "Pump Pre-mash");
 #endif
 StringConst( On, "On");
 StringConst( Off, "Off");
@@ -247,9 +247,9 @@ StringConst( Pump_Mashout, "Stir Mashout");
 StringConst( Pump_On_Boil, "Stir on Boil");
 StringConst( Pump_Stop, "Stir Stop");
 #else
-StringConst( Pump_On_Mash, "Pmp on Mash");
-StringConst( Pump_Mashout, "Pmp Mashout");
-StringConst( Pump_On_Boil, "Pmp on Boil");
+StringConst( Pump_On_Mash, "Pump on Mash");
+StringConst( Pump_Mashout, "Pump Mash Out");
+StringConst( Pump_On_Boil, "Pump on Boil");
 StringConst( Pump_Stop, "Pump Stop");
 #endif
 StringConst( PID_Pipe, "PID Pipe");
@@ -269,7 +269,7 @@ StringConst( Yes, "Yes");
 StringConst( No, "No");
 StringConst( Skip_Remove, "Skip Remove");
 StringConst( Skip_Iodine, "Skip Iodine");
-StringConst( IodineTime, "IodineTime");
+StringConst( IodineTime, "Iodine Time");
 StringConst( Whirlpool_e, "Whirlpool");
 StringConst( Hot, "Hot");
 StringConst( Cold, "Cold"); // and off

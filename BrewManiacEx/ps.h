@@ -390,10 +390,12 @@ void EepromInit(void)
 
     SaveDefaultSettingsToEeprom();
 	}
-
 }
 
+
 #else //#if USE_SPIFFS_EEPROM
+
+
 bool isEepromInitialized(void)
 {
 
@@ -434,10 +436,12 @@ void commitSetting(void)
 	}
 }
 
+
 byte readSetting(int addr)
 {
 	return EEPROM.read(addr);
 }
+
 
 bool updateSetting(int addr,byte value)
 {
@@ -448,13 +452,16 @@ bool updateSetting(int addr,byte value)
 		_eepromDirty = true;
 		return true;
 	}
+	
 	return false;
 }
+
 
 word readSettingWord(int addr)
 {
 	return word(EEPROM.read(addr),EEPROM.read(addr+1));
 }
+
 
 word updateSettingWord(int addr,word value)
 {
@@ -462,6 +469,8 @@ word updateSettingWord(int addr,word value)
   	EEPROM.write((addr+1),lowByte(value));
 	_eepromDirty = true;
 }
+
+
 void EepromInit(void)
 {
 	//ESP8266
@@ -478,6 +487,7 @@ void SaveDefaultSettingsToEeprom(void)
 {
   setEepromDefault();
 }  //end SaveDefaultSettingsToEeprom
+
 
 #endif //#if USE_SPIFFS_EEPROM
 

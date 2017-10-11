@@ -1126,13 +1126,13 @@ void saveTunning(void)
 {
 	// update constant
 	double  kp = autoTune.GetKp();
-    double  ki = autoTune.GetKi();
-    double  kd = autoTune.GetKd();
-    thePID.SetTunings(kp,ki,kd);
+  double  ki = autoTune.GetKi();
+  double  kd = autoTune.GetKd();
+  thePID.SetTunings(kp,ki,kd);
 
-    updateSetting(PS_kP,(byte)( kp + 100.0)); 
-	updateSetting(PS_kI,(byte)( ki * 250.0 +100));
-	//updateSetting(PS_kD,(byte)( kd + 100.0));
+  updateSetting(PS_kP,(byte)( kp + 100.0)); 
+	updateSetting(PS_kI,(byte)( ki * 250.0 + 100));
+	updateSetting(PS_kD,(byte)( kd + 100.0));
 	wiSettingChanged(PS_kD,(byte)( kd + 100.0));// notify setting change.
 	commitSetting();
 }
@@ -1483,8 +1483,11 @@ void heaterControl(void)
 	gAuxTemperature = gTemperatureReading[gAuxSensorIndex];
 #else
 	if(_physicalHeattingOn){
-		gCurrentTemperature += (gCurrentTimeInMS - lastTime) * 0.0002;
-		lastTime = gCurrentTimeInMS;
+// Changes - 6/23/2017
+//    gCurrentTemperature += (gCurrentTimeInMS - lastTime) * 0.0002;
+    gCurrentTemperature += (gCurrentTimeInMS - lastTime) * 0.0020;
+// ^
+    lastTime = gCurrentTimeInMS;
 	}else{
 		gCurrentTemperature -= (gCurrentTimeInMS - lastTime) * 0.000005;
 		lastTime = gCurrentTimeInMS;

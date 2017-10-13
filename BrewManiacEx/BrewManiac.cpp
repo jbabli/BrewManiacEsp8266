@@ -2652,7 +2652,7 @@ void settingAutomationDisplayItem(void)
 	else if(_editingStage >0 && _editingStage < 7)
 	{
 		if (_editingStageAux == 0){
-      editItem(STR(Mash_In), value, ToTempInStorage(byTempMax), ToTempInStorage(byTempMin), &displayStageTemperature);
+      editItem(STR(Mash_x), value, ToTempInStorage(byTempMax), ToTempInStorage(byTempMin), &displayStageTemperature);
 		}else{
 			editItem(STR(Mash_x),value,MAX_STAGE_TIME,MIN_STAGE_TIME,&displayTime);
 		}		
